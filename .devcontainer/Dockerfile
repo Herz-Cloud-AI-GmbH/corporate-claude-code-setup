@@ -24,8 +24,9 @@ WORKDIR ${APP_FOLDER}
     # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh | bash -s ${CLAUDE_CODE_VERSION} \
     #
-    # Install uv MCP servers
+    # Install uv to be able torun MCP servers with uvx
     && curl -LsSf https://astral.sh/uv/install.sh | sh \
     #
-    # update npm !!!--ignore-scripts due to Shai Hulud attack!!!
+    # update npm to be able to run MCP servers with npx
+    # !!!--ignore-scripts due to Shai Hulud attack!!!
     && npm install --ignore-scripts -g npm@11.4.2
