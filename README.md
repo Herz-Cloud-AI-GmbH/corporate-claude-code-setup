@@ -9,6 +9,11 @@
 - This repository shows a setup of Claude Code within a devcontainer. This ensures to keep the installation project local.
 - Additionally, the Claude Sonnet models are configured not to be used from Anthropic directly but to be consumed from Vertex AI inside a GCP Project. If the company has a corporate GCP cloud landing zone, this ensures compliant usage of Anthropic models.
 
+## Prerequisites
+
+1. This repository was written with Cursor, which is able to run devcontainers. If you use another IDE, this IDE must have the capabilities to run devcontainers.
+2.  The Anthropic models are assumed to be served through Google Cloud, which means that you ned to have access to a project in Google Cloud.
+
 ## Devcontainer Setup
 
 ### Dockerfile
