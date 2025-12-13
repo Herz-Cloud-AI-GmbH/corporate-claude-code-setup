@@ -1,8 +1,8 @@
 # Corporate Claude-Code Setup
 
 ## Pain Points To Solve
-- Typically developers in corporate environments cannot just use their private Claude Code subscription but would like to make use of the power of Claude Code.
-- If developers work on multiple projects it can be preferable to have Claude Code installed in a project specific environment only because some project might allow the use of AI assisted coding and don't due to confidentiality restrictions.
+- Typically, developers in corporate environments cannot just use their private Claude Code subscription but would like to make use of the power of Claude Code.
+- If developers work on multiple projects, it can be preferable to have Claude Code installed in a project specific environment only because some project might allow the use of AI assisted coding and don't due to confidentiality restrictions.
 - Often companies don't have a direct contract with Anthropic for Claude Code but have existing cloud infrastructure.
 
 ## Solution
@@ -12,7 +12,7 @@
 ## Prerequisites
 
 1. This repository was written with Cursor, which is able to run devcontainers. If you use another IDE, this IDE must have the capabilities to run devcontainers.
-2.  The Anthropic models are assumed to be served through Google Cloud, which means that you ned to have access to a project in Google Cloud.
+2.  The Anthropic models are assumed to be served through Google Cloud, which means that you need to have access to a project in Google Cloud.
 
 ## Devcontainer Setup
 
@@ -20,7 +20,7 @@
 
 - The devcontainer setup is configured in the folder `.devcontainer`.
 - As base image a devcontainer `node` image is used to have `npm` available for running MCP servers with `npx` later on.
-- `gcloud` is installed to be abel to login to Google Cloud.
+- `gcloud` is installed to be able to login to Google Cloud.
 - `uv` is installed to have `uvx` available to run MCP servers later on.
 
 ### devcontainer.json
@@ -44,7 +44,7 @@
 - Inside Vertex AI go to Model Garden
 - Enable an endpoint for the latest Claude Sonnet model.
   - At the time of creating this Readme, the latest version was `claude-sonnet-4-5@20250929`.
-  - The model id of your activated Claude Sonnet model needs to entered later in the `.env` file.
+  - The model id of your activated Claude Sonnet model needs to be entered later in the `.env` file.
   - The Claude Sonnet model is later specified in the `.env` file as the `ANTHROPIC_MODEL`.
 - Similarly enable an endpoint for the latest Claude Haiku model.
   - This model is later specified in the `.env` file as the `ANTHROPIC_SMALL_FAST_MODEL`.
@@ -69,4 +69,12 @@
 6. Follow the instructions in the browser and paste the authentication token back into the terminal. Once this is done, you are authenticated to your GCP project and Claude Code is able to connect to the deployed endpoints in your GCP project.
 
 ### Run Claude Code
-7. Now should be abel to open a terminal in `vscode`or `cursor`and to type in `claude`. Et voilá, Claude Code is starting, ready to be your helpful coding assistant.
+7. Now should be able to open a terminal in `vscode`or `cursor`and to type in `claude`. Et voilá, Claude Code is starting, ready to be your helpful coding assistant.
+
+
+## How To Proceed
+
+- This repository contains a minimal example to setup claude inside a devcontainer with Anthropic models being provided via GCP.
+- To integrate it with your code base, transfer the files of this repository to your code base to have Claude Code inside a devcontainer. This is at your own risk. I.e., review the setup to assess that it meets your required security standards.
+
+Happy Coding.
