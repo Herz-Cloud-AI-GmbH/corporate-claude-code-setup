@@ -6,29 +6,39 @@
       "context": "..",
       // build-time environment vars
       "args": {
-        "APP_FOLDER": "/workspaces/${localWorkspaceFolderBasename}"
+        "APP_FOLDER": "/workspaces/${localWorkspaceFolderBasename}",
+        "CLAUDE_CODE_VERSION": "latest"
       }
     },
-    // run-time environment vars
-    "runArgs": [
-		"--env-file",
-		".devcontainer/.env"
-	],
     "remoteUser": "node",
+    // Enable host.docker.internal for accessing host services (e.g., Ollama)
+    "runArgs": [
+      "--add-host=host.docker.internal:host-gateway"
+    ],
     // Add mounts
     "mounts": [
       "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/node/.ssh,type=bind,readonly"
     ],
     // Forward ports
     "forwardPorts": [
-      3000
+      3000,
+      4000
     ],
     // Port attributes to ensure proper forwarding
     "portsAttributes": {
       "3000": {
         "label": "Next.js App",
         "onAutoForward": "notify"
+      },
+      "4000": {
+        "label": "LiteLLM Proxy",
+        "onAutoForward": "silent"
       }
+    },
+    // Post-create setup instructions
+    "postCreateCommand": {
+      "addSafeRepository": "git config --global --add safe.directory /workspaces/${localWorkspaceFolderBasename}",
+      "showInstructions": "echo '\n🚀 Welcome to Claude Code Multi-Provider Setup!\n\nTo configure Claude Code, run one of:\n  make setup-gcp      # Use GCP Vertex AI\n  make setup-ollama   # Use local Ollama\n  make setup-copilot  # Use GitHub Copilot\n\nFor help: make help\n'"
     },
     // customize the devcontainer
     "customizations": {
@@ -37,6 +47,8 @@
         "extensions": [
           // claude
           "Anthropic.claude-code",
+          // makefile tools
+          "ms-vscode.makefile-tools",
           // node extensions
           "dbaeumer.vscode-eslint",
           "esbenp.prettier-vscode",
@@ -94,9 +106,5 @@
           "files.insertFinalNewline": true
         }
       }
-    },
-    "postCreateCommand": {
-      "addSafeRepository": "git config --global --add safe.directory /workspaces/${localWorkspaceFolderBasename}"
-    },
-    "postStartCommand": ".devcontainer/gcloud_login.sh"
+    }
   }

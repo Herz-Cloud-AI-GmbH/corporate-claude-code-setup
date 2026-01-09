@@ -1,0 +1,24 @@
+model_list:
+  # Opus - via GitHub Copilot
+  - model_name: opus
+    litellm_params:
+      model: github_copilot/claude-opus-4.5
+      extra_headers:
+        Editor-Version: "vscode/1.107.0"
+        Copilot-Integration-Id: "vscode-chat"
+
+  # Sonnet - via GitHub Copilot
+  - model_name: sonnet
+    litellm_params:
+      model: github_copilot/claude-sonnet-4.5
+      extra_headers:
+        Editor-Version: "vscode/1.107.0"
+        Copilot-Integration-Id: "vscode-chat"
+
+  # Haiku - via GitHub Copilot
+  - model_name: haiku
+    litellm_params:
+      model: github_copilot/claude-haiku-4.5
+      extra_headers:
+        Editor-Version: "vscode/1.107.0"
+        Copilot-Integration-Id: "vscode-chat"

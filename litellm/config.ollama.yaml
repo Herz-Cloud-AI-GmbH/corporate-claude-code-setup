@@ -1,0 +1,18 @@
+model_list:
+  # Opus equivalent - largest local model
+  - model_name: opus
+    litellm_params:
+      model: ollama_chat/llama3.1:70b
+      api_base: http://host.docker.internal:11434
+
+  # Sonnet equivalent - medium model
+  - model_name: sonnet
+    litellm_params:
+      model: ollama_chat/llama3.1:8b
+      api_base: http://host.docker.internal:11434
+
+  # Haiku equivalent - smallest/fastest
+  - model_name: haiku
+    litellm_params:
+      model: ollama_chat/qwen2.5:3b
+      api_base: http://host.docker.internal:11434
