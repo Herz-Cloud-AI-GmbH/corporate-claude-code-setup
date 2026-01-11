@@ -1,10 +1,22 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup-gcp setup-ollama setup-copilot status stop clean start
+.PHONY: help script-help setup-gcp setup-ollama setup-copilot status stop clean start
 
 # Delegate all logic to the Python script
 SCRIPT := python3 scripts/manage.py
 
 help: ## Show this help message
+	@echo "Claude Code devcontainer setup"
+	@echo ""
+	@echo "Available commands:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
+	@echo ""
+	@echo "Examples:"
+	@echo "  make setup-gcp"
+	@echo "  make setup-ollama"
+	@echo "  make setup-copilot"
+	@echo "  make status"
+
+script-help: ## Show underlying scripts/manage.py help
 	@$(SCRIPT) --help
 
 setup-gcp: ## Setup Claude Code with GCP Vertex AI
