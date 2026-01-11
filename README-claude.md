@@ -2,7 +2,11 @@
 
 ## Repository Purpose
 
-This repository provides a devcontainer-based setup for Claude Code with support for three LLM providers via LiteLLM proxy.
+This repository provides a devcontainer-based setup for Claude Code with support for three LLM providers:
+
+- **GCP Vertex AI (native Claude Code integration)**: preferred for simplicity (no proxy).
+- **Ollama (local models) via LiteLLM**: proxy mode for local model backends.
+- **GitHub Copilot subscription (Claude models) via LiteLLM**: proxy mode to consume models through Copilot.
 
 ## Critical Understanding for AI Agents
 
@@ -13,18 +17,19 @@ This repository provides a devcontainer-based setup for Claude Code with support
 4. This is intentional - gives developers explicit control over provider selection
 
 **File Categories:**
-- **READ-ONLY Templates**: `sample.env`, `litellm/config.*.yaml` (committed to git)
+- **READ-ONLY Templates**: `.devcontainer/sample.env`, `litellm/config.*.yaml` (committed to git)
 - **GENERATED at Runtime**: `.env`, `~/.claude/settings.json` (gitignored, created by Makefile)
 
 ## Architecture
 
 ```
-Claude Code → LiteLLM Proxy (localhost:4000) → [GCP Vertex AI | Ollama | GitHub Copilot]
+Mode A (GCP):     Claude Code → Vertex AI (native)
+Mode B (Proxy):   Claude Code → LiteLLM (localhost:4000) → [Ollama | GitHub Copilot]
 ```
 
 **Key Components:**
-- **LiteLLM Proxy**: Unified gateway routing requests to different providers
-- **Makefile**: Interactive setup commands for provider selection
+- **LiteLLM Proxy (proxy mode only)**: Unified gateway routing requests to Ollama or Copilot
+- **Makefile + `scripts/manage.py`**: Setup orchestration for provider selection
 - **devcontainer**: Pre-configured environment with all dependencies
 
 ## File Structure
@@ -33,15 +38,15 @@ Claude Code → LiteLLM Proxy (localhost:4000) → [GCP Vertex AI | Ollama | Git
 .devcontainer/
 ├── Dockerfile                     # Container image with gcloud, LiteLLM, Claude Code
 ├── devcontainer.json             # VS Code devcontainer configuration
-├── sample.env                    # Comprehensive environment variable template (all providers)
+├── sample.env                    # Environment variable template (native Vertex + proxy mode)
 └── .env                          # Active config (created by make setup-*)
 
 litellm/
-├── config.gcp.yaml               # LiteLLM config for GCP Vertex AI
 ├── config.ollama.yaml            # LiteLLM config for Ollama
 └── config.copilot.yaml           # LiteLLM config for GitHub Copilot
 
 Makefile                           # Setup orchestration
+scripts/manage.py                  # Implementation of setup/status/start/stop
 ~/.claude/settings.json           # Claude Code configuration (created by setup)
 ```
 
@@ -49,27 +54,7 @@ Makefile                           # Setup orchestration
 
 ### LiteLLM Configs
 
-Each YAML file defines three model aliases:
-
-**litellm/config.gcp.yaml:**
-```yaml
-model_list:
-  - model_name: opus
-    litellm_params:
-      model: vertex_ai/claude-opus-4-5@20251101
-      vertex_project: ${GCP_PROJECT_ID}
-      vertex_location: us-central1
-  - model_name: sonnet
-    litellm_params:
-      model: vertex_ai/claude-sonnet-4-5@20250929
-      vertex_project: ${GCP_PROJECT_ID}
-      vertex_location: us-central1
-  - model_name: haiku
-    litellm_params:
-      model: vertex_ai/claude-haiku-4-5@20250925
-      vertex_project: ${GCP_PROJECT_ID}
-      vertex_location: us-central1
-```
+Each YAML file defines three **model aliases** (`opus`, `sonnet`, `haiku`) for **proxy mode**.
 
 **litellm/config.ollama.yaml:**
 ```yaml
@@ -117,6 +102,8 @@ model_list:
 
 Located at `~/.claude/settings.json` (created by `make setup-*`):
 
+**Proxy mode example (Ollama/Copilot):**
+
 ```json
 {
   "env": {
@@ -132,68 +119,50 @@ Located at `~/.claude/settings.json` (created by `make setup-*`):
 }
 ```
 
-**Model Usage:**
+**Native Vertex mode example (GCP):**
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_USE_VERTEX": "1",
+    "ANTHROPIC_VERTEX_PROJECT_ID": "<GCP_PROJECT_ID>",
+    "CLOUD_ML_REGION": "global",
+    "ANTHROPIC_MODEL": "claude-sonnet-4-5@20250929",
+    "ANTHROPIC_SMALL_FAST_MODEL": "claude-haiku-4-5@20250925",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true"
+  }
+}
+```
+
+**Model usage in proxy mode:**
 - `ANTHROPIC_DEFAULT_OPUS_MODEL`: Complex reasoning, planning mode
 - `ANTHROPIC_DEFAULT_SONNET_MODEL`: General coding, execution mode
 - `ANTHROPIC_DEFAULT_HAIKU_MODEL`: Fast operations (grep, glob, quick tasks)
 - `CLAUDE_CODE_SUBAGENT_MODEL`: Subagent operations
 
-## Makefile Internal Flow
+## Setup Flow (Makefile + scripts/manage.py)
 
-### How Setup Actually Works
+The Makefile delegates to `scripts/manage.py`:
 
-Each `make setup-<provider>` command executes a chain of internal targets. Understanding this flow is critical:
+- `make setup-gcp`: native Vertex setup (no LiteLLM)
+  - ensure `.devcontainer/.env` exists (copied from `sample.env` if missing)
+  - ensure `GCP_PROJECT_ID` exists (auto-detect/prompt)
+  - run `gcloud auth application-default login`
+  - write `~/.claude/settings.json` for native Vertex
+  - stop LiteLLM if it was running
 
-**Example: `make setup-gcp` execution flow:**
-
-```
-make setup-gcp
-  └─> _check_gcloud           # Verify gcloud CLI installed
-  └─> _setup_env PROFILE=gcp  # Handle .env file
-       │
-       ├─> If .env doesn't exist:
-       │    1. Copy sample.env → .env
-       │    2. Update LITELLM_CONFIG=config.gcp.yaml
-       │    3. Update PROFILE=gcp
-       │    4. Prompt user to edit GCP_PROJECT_ID and LITELLM_MASTER_KEY
-       │    5. Wait for user to press Enter
-       │
-       └─> If .env exists:
-            1. Update LITELLM_CONFIG=config.gcp.yaml
-            2. Update PROFILE=gcp
-            3. Existing values (GCP_PROJECT_ID, LITELLM_MASTER_KEY) preserved
-
-  └─> _authenticate_gcp       # GCP-specific authentication
-       │
-       ├─> Source .env to get $GCP_PROJECT_ID
-       ├─> Run: gcloud config set project $GCP_PROJECT_ID
-       └─> Run: gcloud auth application-default login (opens browser)
-
-  └─> _setup_claude_config    # Generate Claude Code settings
-       │
-       ├─> Create ~/.claude/ directory
-       ├─> Source .env to get $LITELLM_PORT and $LITELLM_MASTER_KEY
-       └─> Generate ~/.claude/settings.json with printf
-            (Uses model aliases: opus, sonnet, haiku)
-
-  └─> _start_litellm          # Start LiteLLM proxy
-       │
-       ├─> Stop any existing LiteLLM process
-       ├─> Source .env to get config values
-       ├─> Start: litellm --config litellm/$LITELLM_CONFIG
-       ├─> Save PID to /tmp/litellm.pid
-       ├─> Health check loop (5 attempts, 1s each):
-       │    └─> curl http://localhost:$LITELLM_PORT/health
-       └─> Report success or failure
-```
+- `make setup-ollama` / `make setup-copilot`: proxy setup (LiteLLM)
+  - ensure `.devcontainer/.env` exists (copied from `sample.env` if missing)
+  - set `PROFILE` and `LITELLM_CONFIG`
+  - ensure `LITELLM_MASTER_KEY` exists
+  - write `~/.claude/settings.json` for proxy mode (Anthropic format)
+  - start LiteLLM and wait for `/health`
 
 **Critical Implementation Details:**
 
 1. **Environment Variable Flow:**
-   - `.env` contains: `LITELLM_CONFIG=config.gcp.yaml` and `GCP_PROJECT_ID=my-project`
-   - LiteLLM reads `litellm/config.gcp.yaml` which has `vertex_project: ${GCP_PROJECT_ID}`
-   - LiteLLM substitutes `${GCP_PROJECT_ID}` from environment when it starts
-   - This is why `.env` must be sourced before starting LiteLLM
+   - `.devcontainer/.env` is the single source of truth for setup inputs.
+   - In proxy mode, LiteLLM reads `litellm/config.<provider>.yaml` and substitutes variables from the environment.
 
 2. **The .env File Lifecycle:**
    ```
@@ -210,13 +179,13 @@ make setup-gcp
 ### Setup Commands
 
 **make setup-gcp:**
-Executes: `_check_gcloud` → `_setup_env` → `_authenticate_gcp` → `_setup_claude_config` → `_start_litellm`
+Configures native Vertex AI usage (no LiteLLM).
 
 **make setup-ollama:**
-Executes: `_check_ollama` → `_setup_env` → `_setup_claude_config` → `_start_litellm`
+Configures proxy mode and starts LiteLLM for Ollama.
 
 **make setup-copilot:**
-Executes: `_check_copilot` → `_setup_env` → `_setup_claude_config` → `_start_litellm`
+Configures proxy mode and starts LiteLLM for Copilot.
 
 ### Utility Commands
 
@@ -235,7 +204,7 @@ Executes: `_check_copilot` → `_setup_env` → `_setup_claude_config` → `_sta
 
 ## Process Management
 
-- LiteLLM runs as background process via `nohup`
+- LiteLLM runs as background process (proxy mode only)
 - PID stored in `/tmp/litellm.pid`
 - Logs written to `/tmp/litellm.log`
 - Port: 4000 (configurable via `LITELLM_PORT` in `.env`)
@@ -708,11 +677,10 @@ ps aux | grep litellm                        # Check if LiteLLM is running
 **Required in .env for each provider:**
 
 **GCP:**
-- `LITELLM_CONFIG=config.gcp.yaml`
 - `GCP_PROJECT_ID=<your-project>`
-- `CLOUD_ML_REGION=us-central1`
-- `LITELLM_MASTER_KEY=<random-key>`
-- `LITELLM_PORT=4000`
+- `CLOUD_ML_REGION=global`
+- `ANTHROPIC_MODEL=<vertex-claude-model-id>` (recommended)
+- `ANTHROPIC_SMALL_FAST_MODEL=<vertex-claude-model-id>` (recommended)
 - `PROFILE=gcp`
 
 **Ollama:**

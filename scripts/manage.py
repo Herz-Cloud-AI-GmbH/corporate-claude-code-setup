@@ -67,7 +67,8 @@ class ClaudeSetupManager:
     def update_env_vars(self, updates: dict[str, str]) -> None:
         self.ensure_env_file()
         for key, value in updates.items():
-            set_key(self.env_file, key, value)
+            # Avoid writing quoted values like PROFILE='gcp' which then break comparisons.
+            set_key(self.env_file, key, value, quote_mode="never")
         self.print_step(f"Updated {self.env_file}")
 
     def check_command(self, command: str) -> bool:
@@ -96,8 +97,10 @@ class ClaudeSetupManager:
             self.print_warning("GCP_PROJECT_ID is missing in .env for GCP profile")
 
         cloud_region = env_vars.get("CLOUD_ML_REGION", "global")
-        model = env_vars.get("VERTEX_ANTHROPIC_MODEL", "")
-        small_fast_model = env_vars.get("VERTEX_ANTHROPIC_SMALL_FAST_MODEL", "")
+        # Keep compatibility with the original (main-branch) env naming.
+        # These should be Vertex Claude model IDs like "claude-sonnet-4-5@20250929".
+        model = env_vars.get("ANTHROPIC_MODEL", "")
+        small_fast_model = env_vars.get("ANTHROPIC_SMALL_FAST_MODEL", "")
 
         # Native Vertex: do NOT set ANTHROPIC_BASE_URL or any LiteLLM-related vars.
         settings_env: dict[str, str] = {
@@ -310,15 +313,18 @@ class ClaudeSetupManager:
         print(f"Active Profile: {Colors.BLUE}{profile}{Colors.ENDC}")
         print(f"LiteLLM Config: {env_vars.get('LITELLM_CONFIG', 'None')}\n")
 
-        if self.pid_file.exists():
-            pid = self.pid_file.read_text().strip()
-            try:
-                os.kill(int(pid), 0)
-                self.print_success(f"LiteLLM Proxy: Running (PID {pid})")
-            except (ProcessLookupError, ValueError):
-                self.print_error("LiteLLM Proxy: Not running (stale PID)")
+        if profile == "gcp":
+            self.print_success("LiteLLM Proxy: Not used for GCP (native Vertex mode)")
         else:
-            self.print_error("LiteLLM Proxy: Not running")
+            if self.pid_file.exists():
+                pid = self.pid_file.read_text().strip()
+                try:
+                    os.kill(int(pid), 0)
+                    self.print_success(f"LiteLLM Proxy: Running (PID {pid})")
+                except (ProcessLookupError, ValueError):
+                    self.print_error("LiteLLM Proxy: Not running (stale PID)")
+            else:
+                self.print_error("LiteLLM Proxy: Not running")
         print("")
 
         if self.claude_settings.exists():

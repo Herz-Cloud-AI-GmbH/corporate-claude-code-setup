@@ -7,10 +7,10 @@
 
 ## Solution
 - This repository shows a setup of Claude Code within a devcontainer. This ensures to keep the installation project local.
-- The setup supports **three different LLM providers** via LiteLLM proxy:
-  - **GCP Vertex AI**: Claude models consumed from Vertex AI inside a GCP Project (compliant for corporate GCP cloud landing zones)
-  - **Local Ollama**: Self-hosted open-source models for offline work, highly confidential code bases, or cost-sensitive scenarios
-  - **GitHub Copilot**: Claude models via existing GitHub Copilot subscription
+- The setup supports **three different LLM providers**:
+  - **GCP Vertex AI (native)**: Claude Code connects directly to Vertex AI (simplest, no proxy).
+  - **Local Ollama (via LiteLLM)**: Use local models through a lightweight gateway.
+  - **GitHub Copilot subscription (via LiteLLM)**: Consume Claude models through Copilot.
 - You can interactively choose which provider to use via simple `make` commands.
 
 ## Prerequisites
@@ -28,7 +28,7 @@
 - The devcontainer setup is configured in the folder `.devcontainer`.
 - As base image a devcontainer `node` image is used to have `npm` available for running MCP servers with `npx` later on.
 - `gcloud` is installed to be able to login to Google Cloud (for GCP Vertex AI provider).
-- `LiteLLM` is installed to provide a unified proxy for routing requests to different LLM providers.
+- `LiteLLM` is installed (used only for Ollama/Copilot provider modes).
 - `uv` is installed to have `uvx` available to run MCP servers later on.
 
 ### devcontainer.json
@@ -36,15 +36,14 @@
 - Inside the `devcontainer.json` the configuration of the devcontainer is done.
 - Important is the mount of the local `~/.ssh` folder to be able to push to the remote repository within the devcontainer with the same ssh setup from the local PC.
 - To easily distinguish if the project is opened locally or inside the devcontainer, a custom coloring of the top-bar, side-bar, and bottom is added inside the `devcontainer.json`. This custom coloring is active when the project is opened inside the devcontainer.
-- Port 4000 is forwarded for the LiteLLM proxy.
+- Port 4000 is forwarded for the LiteLLM proxy (used in Ollama/Copilot modes).
 
 ### LiteLLM Configuration Files
 
 - Three LiteLLM configuration files define routing to different providers (located in `litellm/`):
-  - `config.gcp.yaml` - Routes to GCP Vertex AI
   - `config.ollama.yaml` - Routes to local Ollama
   - `config.copilot.yaml` - Routes to GitHub Copilot
-- Each config defines three model aliases (opus, sonnet, haiku) for different use cases.
+- Each config defines three model aliases (`opus`, `sonnet`, `haiku`) for different use cases (proxy modes only).
 
 ## Google Cloud Setup
 
@@ -78,9 +77,10 @@
 ```bash
 make setup-gcp
 ```
-- You will be prompted to edit `.devcontainer/.env` with your GCP project ID
+- You will be prompted to set your GCP project ID if missing
 - The setup will authenticate you to Google Cloud via browser
 - Click on the authentication link with `Command + click` and follow the instructions
+- In this mode, Claude Code uses **native Vertex AI** (no LiteLLM).
 
 #### Option B: Local Ollama
 ```bash
@@ -119,7 +119,7 @@ make status
 ### Switch Providers (Optional)
 7. You can switch between providers at any time:
 ```bash
-make stop              # Stop current provider
+make stop              # Stop LiteLLM proxy (if you are in a proxy mode)
 make setup-<provider>  # Start new provider (gcp, ollama, or copilot)
 ```
 
