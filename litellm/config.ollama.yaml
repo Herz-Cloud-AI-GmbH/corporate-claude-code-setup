@@ -1,18 +1,28 @@
+litellm_settings:
+  # Claude Code may send Anthropic-only parameters (e.g. "thinking").
+  # Ollama models don't support these, so drop unmapped params.
+  drop_params: true
+
 model_list:
   # Opus equivalent - largest local model
   - model_name: opus
     litellm_params:
-      model: ollama_chat/llama3.1:70b
+      model: ollama_chat/qwen3:14b
       api_base: http://host.docker.internal:11434
+      # Enable Ollama "thinking" mode statically (best-effort).
+      # LiteLLM maps reasoning_effort -> Ollama `think` for supported models.
+      reasoning_effort: high
 
   # Sonnet equivalent - medium model
   - model_name: sonnet
     litellm_params:
-      model: ollama_chat/llama3.1:8b
+      model: ollama_chat/qwen3:14b
       api_base: http://host.docker.internal:11434
+      reasoning_effort: high
 
   # Haiku equivalent - smallest/fastest
   - model_name: haiku
     litellm_params:
-      model: ollama_chat/qwen2.5:3b
+      model: ollama_chat/qwen3:8b
       api_base: http://host.docker.internal:11434
+      reasoning_effort: high

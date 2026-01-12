@@ -35,6 +35,9 @@ class ClaudeSetupManager:
         self.claude_settings = Path.home() / ".claude" / "settings.json"
         self.pid_file = Path("/tmp/litellm.pid")
         self.log_file = Path("/tmp/litellm.log")
+        self.copilot_token_dir = Path.home() / ".config" / "litellm" / "github_copilot"
+        self.copilot_api_key_file = self.copilot_token_dir / "api-key.json"
+        self.copilot_access_token_file = self.copilot_token_dir / "access-token"
 
     # --------- output helpers ---------
     def print_step(self, message: str) -> None:
@@ -132,6 +135,10 @@ class ClaudeSetupManager:
             "ANTHROPIC_DEFAULT_SONNET_MODEL": "sonnet",
             "ANTHROPIC_DEFAULT_HAIKU_MODEL": "haiku",
             "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet",
+            # Claude Code may send experimental/beta params (e.g. "thinking") that
+            # many non-Anthropic backends (like Ollama) don't support.
+            # Disabling experimental betas avoids those params being sent.
+            "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
             "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
         }
 
@@ -216,15 +223,17 @@ class ClaudeSetupManager:
 
         current_env = os.environ.copy()
         current_env.update({k: v for k, v in env_vars.items() if v is not None})
+        # LiteLLM v1.80+ can attempt to restructure its packaged UI assets under
+        # site-packages, which fails in devcontainers due to permissions.
+        # Disabling the admin UI avoids this and is fine for this local setup.
+        current_env.setdefault("DISABLE_ADMIN_UI", "True")
 
         cmd = [
             "litellm",
             "--config",
             str(config_file),
             "--port",
-            str(port),
-            "--master-key",
-            master_key,
+            str(port)
         ]
 
         with open(self.log_file, "w") as log:
@@ -238,20 +247,123 @@ class ClaudeSetupManager:
             self.pid_file.write_text(str(process.pid))
 
         self.print_step("Waiting for LiteLLM to be ready...")
-        headers = {"Authorization": f"Bearer {master_key}"}
-        for _ in range(10):
+        # Readiness: first ensure the HTTP server is reachable at all.
+        # Note: /health may return 401 when auth is enabled and no key is passed.
+        no_auth_headers: dict[str, str] = {}
+        auth_headers = {"Authorization": f"Bearer {master_key}"}
+
+        def maybe_print_copilot_device_code() -> None:
+            """
+            LiteLLM GitHub Copilot provider uses GitHub OAuth device flow.
+            LiteLLM prints a line like:
+              'Please visit https://github.com/login/device and enter code XXXX-YYYY to authenticate.'
+            When LiteLLM runs in the background, that prompt ends up in /tmp/litellm.log.
+            This helper surfaces it to the user.
+            """
+            if profile != "copilot":
+                return
             try:
-                resp = requests.get(f"http://localhost:{port}/health", headers=headers, timeout=1)
-                if resp.status_code == 200:
-                    self.print_success(f"LiteLLM started successfully (PID {process.pid})")
+                if not self.log_file.exists():
                     return
+                text = self.log_file.read_text(errors="ignore")
+                marker = "Please visit https://github.com/login/device and enter code "
+                idx = text.rfind(marker)
+                if idx == -1:
+                    return
+                snippet = text[idx : idx + 200].splitlines()[0].strip()
+                # Print only once per new snippet
+                self.print_warning("GitHub Copilot authentication required.")
+                print(f"{Colors.BOLD}{snippet}{Colors.ENDC}")
+            except Exception:
+                return
+
+        for _ in range(30):
+            if process.poll() is not None:
+                self.print_error("LiteLLM process exited during startup. Check logs:")
+                self.print_warning(f"Tail command: tail -f {self.log_file}")
+                raise SystemExit(1)
+            try:
+                resp = requests.get(f"http://localhost:{port}/health", headers=no_auth_headers, timeout=2)
+                # Any HTTP response means the server is up.
+                self.print_success(f"LiteLLM HTTP server is up (PID {process.pid}, status {resp.status_code})")
+                if resp.status_code == 401:
+                    self.print_step("LiteLLM auth is enabled (401 without key is expected).")
+
+                # Now validate the configured master key works (may take longer because /health can be slow).
+                try:
+                    auth_resp = requests.get(
+                        f"http://localhost:{port}/health",
+                        headers=auth_headers,
+                        timeout=10,
+                    )
+                    if auth_resp.status_code == 200:
+                        self.print_success("LiteLLM /health is OK with the configured key (200).")
+                        break
+                    if auth_resp.status_code in (401, 403):
+                        self.print_error(
+                            "LiteLLM is up but rejected the configured key (401/403). "
+                            "Check LITELLM_MASTER_KEY in .devcontainer/.env."
+                        )
+                        self.print_warning(f"Tail command: tail -f {self.log_file}")
+                        raise SystemExit(1)
+
+                    # Non-200 but authenticated: don't block setup; the proxy is running.
+                    self.print_warning(
+                        f"LiteLLM is running but /health returned {auth_resp.status_code} with auth. "
+                        "Continuing anyway; check /tmp/litellm.log if requests fail."
+                    )
+                    break
+                except requests.exceptions.RequestException:
+                    # Authenticated /health can be slow; still accept that the server is up.
+                    self.print_warning(
+                        "LiteLLM is running but /health (authenticated) did not respond in time. "
+                        "Continuing anyway; check /tmp/litellm.log if requests fail."
+                    )
+                    break
             except requests.exceptions.RequestException:
                 pass
+            maybe_print_copilot_device_code()
             time.sleep(1)
 
-        self.print_error("LiteLLM failed to start. Check logs:")
-        self.print_warning(f"Tail command: tail -f {self.log_file}")
-        raise SystemExit(1)
+        # If we got here, the server is up enough to proceed.
+        # For GitHub Copilot, we also want to ensure provider auth is completed.
+        if profile == "copilot":
+            # Copilot auth can take time (user must visit GitHub device URL).
+            # We surface the device code prompt and poll for a successful test request.
+            self.print_step("Checking GitHub Copilot provider authentication...")
+            maybe_print_copilot_device_code()
+
+            test_payload = {
+                "model": "sonnet",
+                "max_tokens": 16,
+                "messages": [{"role": "user", "content": "ping"}],
+            }
+            # Give the user time to complete the device flow.
+            for _ in range(300):  # 5 minutes
+                try:
+                    r = requests.post(
+                        f"http://localhost:{port}/v1/messages",
+                        headers={**auth_headers, "Content-Type": "application/json"},
+                        json=test_payload,
+                        timeout=15,
+                    )
+                    if r.status_code == 200:
+                        self.print_success("GitHub Copilot provider is authenticated and responding.")
+                        return
+                    # If auth isn't done yet, LiteLLM commonly returns 4xx/5xx; keep waiting.
+                except requests.exceptions.RequestException:
+                    pass
+                maybe_print_copilot_device_code()
+                time.sleep(1)
+
+            self.print_error(
+                "LiteLLM is running, but GitHub Copilot authentication is not complete. "
+                "Complete the device login then re-run: make setup-copilot"
+            )
+            self.print_warning(f"Tail command: tail -f {self.log_file}")
+            raise SystemExit(1)
+
+        return
 
     def check_ollama(self) -> None:
         try:
@@ -298,7 +410,10 @@ class ClaudeSetupManager:
 
     def setup_copilot(self) -> None:
         self.print_step("Configuring for GitHub Copilot (via LiteLLM proxy)...")
-        self.print_warning("Ensure you are logged in to GitHub Copilot in VS Code/Cursor")
+        self.print_warning(
+            "GitHub Copilot provider uses GitHub device login via LiteLLM. "
+            "If prompted, open the URL and enter the code."
+        )
         self.update_env_vars({"PROFILE": "copilot", "LITELLM_CONFIG": "config.copilot.yaml"})
         self.ensure_master_key()
         env_vars = self.load_env_vars()

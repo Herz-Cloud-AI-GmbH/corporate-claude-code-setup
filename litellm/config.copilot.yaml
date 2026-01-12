@@ -1,3 +1,8 @@
+litellm_settings:
+  # Claude Code can send provider-unsupported params (e.g. reasoning_effort).
+  # GitHub Copilot provider rejects these; drop them for robustness.
+  drop_params: true
+
 model_list:
   # Opus - via GitHub Copilot
   - model_name: opus
