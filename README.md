@@ -26,7 +26,7 @@
 - The devcontainer setup is configured in the folder `.devcontainer`.
 - As base image a devcontainer `node` image is used to have `npm` available for running MCP servers with `npx` later on.
 - `gcloud` is installed to be able to login to Google Cloud (for GCP Vertex AI provider).
-- `LiteLLM` is installed (used only for Ollama/Copilot provider modes).
+- `LiteLLM` is installed (used only for Copilot provider mode).
 - `uv` is installed to have `uvx` available to run MCP servers later on.
 
 ### devcontainer.json
@@ -34,7 +34,7 @@
 - Inside the `devcontainer.json` the configuration of the devcontainer is done.
 - Important is the mount of the local `~/.ssh` folder to be able to push to the remote repository within the devcontainer with the same ssh setup from the local PC.
 - To easily distinguish if the project is opened locally or inside the devcontainer, a custom coloring of the top-bar, side-bar, and bottom is added inside the `devcontainer.json`. This custom coloring is active when the project is opened inside the devcontainer.
-- Port 4000 is forwarded for the LiteLLM proxy (used in Ollama/Copilot modes).
+- Port 4000 is forwarded for the LiteLLM proxy (used in Copilot mode).
 
 ### LiteLLM Configuration Files
 
