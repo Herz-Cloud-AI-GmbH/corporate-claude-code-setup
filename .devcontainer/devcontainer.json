@@ -11,10 +11,6 @@
       }
     },
     "remoteUser": "node",
-    // Enable host.docker.internal for accessing host services (e.g., Ollama)
-    "runArgs": [
-      "--add-host=host.docker.internal:host-gateway"
-    ],
     // Add mounts
     "mounts": [
       "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/node/.ssh,type=bind,readonly"
@@ -38,7 +34,7 @@
     // Post-create setup instructions
     "postCreateCommand": {
       "addSafeRepository": "git config --global --add safe.directory /workspaces/${localWorkspaceFolderBasename}",
-      "showInstructions": "echo '\n🚀 Welcome to Claude Code Multi-Provider Setup!\n\nTo configure Claude Code, run one of:\n  make setup-gcp      # Use GCP Vertex AI\n  make setup-ollama   # Use local Ollama\n  make setup-copilot  # Use GitHub Copilot\n\nFor help: make help\n'"
+      "showInstructions": "echo '\n🚀 Welcome to Claude Code Multi-Provider Setup!\n\nTo configure Claude Code, run one of:\n  make setup-gcp      # Use GCP Vertex AI\n  make setup-copilot  # Use GitHub Copilot\n\nFor help: make help\n'"
     },
     // customize the devcontainer
     "customizations": {
