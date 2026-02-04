@@ -3,7 +3,6 @@
 This is the **AI-agent-facing** documentation for the current state of this repo.
 
 - **Human-facing overview**: `README.md`
-- **Local/self-hosted alternatives**: `LOCAL_MODEL_ALTERNATIVES.md`, `LOCAL_GPU_BOX_GUIDE.md`
 
 ## What this repo does (current state)
 
@@ -12,17 +11,11 @@ It provides a devcontainer + Makefile workflow to run **Claude Code CLI** agains
 There are two *modes*:
 
 - **Mode A (native GCP Vertex AI)**: Claude Code talks to Vertex directly (no proxy).
-- **Mode B (proxy mode via LiteLLM on `localhost:4000`)**: Claude Code talks to LiteLLM, which routes to:
-  - GitHub Copilot (Claude models via Copilot subscription)
-  - Ollama on the host (best-effort; not full Claude Code agent parity)
+- **Mode B (proxy mode via LiteLLM on `localhost:4000`)**: Claude Code talks to LiteLLM, which routes to GitHub Copilot (Claude models via Copilot subscription).
 
 ## Non-goals / known limitations (important)
 
-- **Ollama local models are not guaranteed to support Claude Code agent/skills parity.**
-  - Even if requests succeed, local models can output malformed tool/skill protocol payloads which break the Claude Code REPL experience.
-  - Treat Ollama mode as “best-effort local chat/coding suggestions”, not a guaranteed replacement for Claude.
-
-- **“Claude thinking” semantics are not preserved for local models.**
+- **"Claude thinking" semantics are not preserved for non-Anthropic backends.**
   - Claude Code can send advanced/experimental parameters (e.g. reasoning/thinking controls). Some backends reject them; others interpret them differently.
   - This repo prioritizes robustness via dropping unsupported params (see `drop_params` below).
 
@@ -45,8 +38,6 @@ Some environments filter `.devcontainer/.env` from automated tooling access. Whe
 
 - **LiteLLM routing**
   - `litellm/config.copilot.yaml` (proxy mode → Copilot)
-  - `litellm/config.ollama.yaml` (proxy mode → Ollama on host)
-  - `litellm/config.gcp.yaml` exists but **GCP is configured as native Vertex** in this repo’s current logic (not via LiteLLM).
 
 ## Commands (user workflow)
 
@@ -56,7 +47,6 @@ Some environments filter `.devcontainer/.env` from automated tooling access. Whe
 Provider setup:
 - `make setup-gcp` (native Vertex; stops LiteLLM)
 - `make setup-copilot` (proxy mode; starts LiteLLM + ensures Copilot auth)
-- `make setup-ollama` (proxy mode; starts LiteLLM; Ollama must run on host)
 
 Control/status:
 - `make status`
@@ -77,9 +67,9 @@ Control/status:
   - optional `ANTHROPIC_MODEL` and `ANTHROPIC_SMALL_FAST_MODEL` (Vertex Claude model IDs)
 - Ensures LiteLLM is stopped to avoid hybrid configs
 
-### Proxy mode (Copilot / Ollama)
+### Proxy mode (Copilot)
 
-`make setup-copilot` / `make setup-ollama`:
+`make setup-copilot`:
 - Writes `~/.claude/settings.json` with:
   - `ANTHROPIC_BASE_URL=http://localhost:<LITELLM_PORT>` (default 4000)
   - `ANTHROPIC_AUTH_TOKEN=<LITELLM_MASTER_KEY>`
@@ -109,8 +99,6 @@ Therefore:
 
 - `litellm/config.copilot.yaml` has:
   - `litellm_settings.drop_params: true`
-- `litellm/config.ollama.yaml` has:
-  - `litellm_settings.drop_params: true`
 
 Effect: LiteLLM drops unsupported params instead of returning 400.
 
@@ -118,26 +106,6 @@ Implications:
 - **Pro:** avoids hard failures when Claude Code (or gateway adapters) send provider-unsupported params (e.g. `reasoning_effort`).
 - **Con:** silently disables “advanced” features that depend on those params for that provider. Tool calling generally still works, but provider-specific extras may be ignored.
 
-## Ollama limitations (do not overpromise)
-
-Ollama via LiteLLM can be useful for “local chat/coding suggestions”, but may **not** reliably support Claude Code’s full agent/skills/tooling contract.
-
-Observed failure mode:
-- Claude Code receives malformed “Skill/tool” shaped output from local models, causing confusing REPL behavior.
-
-If full agent/skills reliability is required for local/self-hosted, see:
-- `LOCAL_MODEL_ALTERNATIVES.md` (includes vLLM and `ccr-local`)
-- `LOCAL_GPU_BOX_GUIDE.md` (hardware guidance)
-
-## Container networking (Ollama)
-
-Ollama is expected to run on the **host**, not inside the container.
-
-The devcontainer enables host reachability via:
-- `--add-host=host.docker.internal:host-gateway` (Linux)
-
-Ollama endpoint from within container:
-- `http://host.docker.internal:11434`
 
 ## Common troubleshooting (high-signal)
 
