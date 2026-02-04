@@ -126,7 +126,7 @@ make clean          # Stop services and remove all configuration
 
 ## Additional Resources
 
-- For AI agents and detailed technical documentation, see `README-claude.md`
+- For AI agents and detailed technical documentation, see `AGENTS.md`
 - For LiteLLM configuration examples, see `litellm/config.*.yaml`
 - For environment configuration, see `.devcontainer/sample.env` (comprehensive template with all variables)
 
