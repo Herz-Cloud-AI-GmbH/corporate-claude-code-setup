@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help script-help setup-gcp setup-ollama setup-copilot status stop clean start
+.PHONY: help script-help setup-gcp setup-copilot status stop clean start
 
 # Delegate all logic to the Python script
 SCRIPT := python3 scripts/manage.py
@@ -12,7 +12,6 @@ help: ## Show this help message
 	@echo ""
 	@echo "Examples:"
 	@echo "  make setup-gcp"
-	@echo "  make setup-ollama"
 	@echo "  make setup-copilot"
 	@echo "  make status"
 
@@ -21,9 +20,6 @@ script-help: ## Show underlying scripts/manage.py help
 
 setup-gcp: ## Setup Claude Code with GCP Vertex AI
 	@$(SCRIPT) setup gcp
-
-setup-ollama: ## Setup Claude Code with local Ollama
-	@$(SCRIPT) setup ollama
 
 setup-copilot: ## Setup Claude Code with GitHub Copilot
 	@$(SCRIPT) setup copilot

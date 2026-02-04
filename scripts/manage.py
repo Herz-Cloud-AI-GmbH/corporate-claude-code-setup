@@ -25,7 +25,7 @@ class ClaudeSetupManager:
     """
     Two-mode setup:
     - GCP: native Vertex AI (no LiteLLM)
-    - Ollama/Copilot: LiteLLM proxy (ANTHROPIC_BASE_URL -> localhost:4000)
+    - Copilot: LiteLLM proxy (ANTHROPIC_BASE_URL -> localhost:4000)
     """
 
     def __init__(self) -> None:
@@ -136,7 +136,7 @@ class ClaudeSetupManager:
             "ANTHROPIC_DEFAULT_HAIKU_MODEL": "haiku",
             "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet",
             # Claude Code may send experimental/beta params (e.g. "thinking") that
-            # many non-Anthropic backends (like Ollama) don't support.
+            # some non-Anthropic backends don't support.
             # Disabling experimental betas avoids those params being sent.
             "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
             "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
@@ -207,7 +207,7 @@ class ClaudeSetupManager:
 
         self.stop_litellm()
 
-        config = env_vars.get("LITELLM_CONFIG", "").strip() or "config.ollama.yaml"
+        config = env_vars.get("LITELLM_CONFIG", "").strip() or "config.copilot.yaml"
         port = env_vars.get("LITELLM_PORT", "4000")
         master_key = env_vars.get("LITELLM_MASTER_KEY", "").strip()
         config_file = self.workspace_root / "litellm" / config
@@ -216,7 +216,7 @@ class ClaudeSetupManager:
             self.print_error(f"Config file not found: {config_file}")
             raise SystemExit(1)
         if not master_key:
-            self.print_error("LITELLM_MASTER_KEY is missing; run setup-ollama or setup-copilot first.")
+            self.print_error("LITELLM_MASTER_KEY is missing; run setup-copilot first.")
             raise SystemExit(1)
 
         self.print_step(f"Starting LiteLLM with config: {config_file}")
@@ -365,19 +365,6 @@ class ClaudeSetupManager:
 
         return
 
-    def check_ollama(self) -> None:
-        try:
-            response = requests.get("http://host.docker.internal:11434/api/tags", timeout=2)
-            if response.status_code == 200:
-                self.print_success("Ollama is running on host")
-                return
-        except requests.exceptions.RequestException:
-            pass
-
-        self.print_error("Ollama is NOT running on http://host.docker.internal:11434")
-        self.print_warning("Please start Ollama on your host machine: 'ollama serve'")
-        raise SystemExit(1)
-
     def ensure_master_key(self) -> None:
         env_vars = self.load_env_vars()
         key = (env_vars.get("LITELLM_MASTER_KEY") or "").strip()
@@ -397,16 +384,6 @@ class ClaudeSetupManager:
 
         self.write_claude_settings(self.build_gcp_native_settings_env(env_vars))
         self.print_success("GCP setup complete (native Vertex mode).")
-
-    def setup_ollama(self) -> None:
-        self.print_step("Configuring for Ollama (via LiteLLM proxy)...")
-        self.check_ollama()
-        self.update_env_vars({"PROFILE": "ollama", "LITELLM_CONFIG": "config.ollama.yaml"})
-        self.ensure_master_key()
-        env_vars = self.load_env_vars()
-        self.write_claude_settings(self.build_proxy_settings_env(env_vars))
-        self.start_litellm()
-        self.print_success("Ollama setup complete (proxy mode).")
 
     def setup_copilot(self) -> None:
         self.print_step("Configuring for GitHub Copilot (via LiteLLM proxy)...")
@@ -464,7 +441,7 @@ class ClaudeSetupManager:
         subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
         setup_parser = subparsers.add_parser("setup", help="Setup a provider")
-        setup_parser.add_argument("provider", choices=["gcp", "ollama", "copilot"])
+        setup_parser.add_argument("provider", choices=["gcp", "copilot"])
 
         subparsers.add_parser("start", help="Start LiteLLM proxy (proxy profiles only)")
         subparsers.add_parser("stop", help="Stop LiteLLM proxy")
@@ -475,8 +452,6 @@ class ClaudeSetupManager:
         if args.command == "setup":
             if args.provider == "gcp":
                 manager.setup_gcp()
-            elif args.provider == "ollama":
-                manager.setup_ollama()
             elif args.provider == "copilot":
                 manager.setup_copilot()
         elif args.command == "start":
