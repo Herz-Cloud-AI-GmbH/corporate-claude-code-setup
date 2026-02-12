@@ -64,7 +64,7 @@ Control/status:
   - `CLAUDE_CODE_USE_VERTEX=1`
   - `ANTHROPIC_VERTEX_PROJECT_ID`
   - `CLOUD_ML_REGION`
-  - optional `ANTHROPIC_MODEL` and `ANTHROPIC_SMALL_FAST_MODEL` (Vertex Claude model IDs)
+  - optional `ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, and `ANTHROPIC_DEFAULT_HAIKU_MODEL` (Vertex Claude model IDs)
 - Ensures LiteLLM is stopped to avoid hybrid configs
 
 ### Proxy mode (Copilot)
@@ -73,7 +73,10 @@ Control/status:
 - Writes `~/.claude/settings.json` with:
   - `ANTHROPIC_BASE_URL=http://localhost:<LITELLM_PORT>` (default 4000)
   - `ANTHROPIC_AUTH_TOKEN=<LITELLM_MASTER_KEY>`
-  - model aliases: `opus`, `sonnet`, `haiku`
+  - `ANTHROPIC_DEFAULT_OPUS_MODEL=opus`
+  - `ANTHROPIC_DEFAULT_SONNET_MODEL=sonnet`
+  - `ANTHROPIC_DEFAULT_HAIKU_MODEL=haiku`
+  - `CLAUDE_CODE_SUBAGENT_MODEL=sonnet`
 - Starts LiteLLM as a background process (`/tmp/litellm.pid`, `/tmp/litellm.log`)
 
 #### Copilot auth (device flow)

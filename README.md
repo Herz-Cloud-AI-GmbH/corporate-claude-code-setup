@@ -50,13 +50,11 @@
 
 ### Vertex AI Configuration
 - Inside Vertex AI go to Model Garden
-- Enable an endpoint for the latest Claude Sonnet model.
-  - At the time of creating this Readme, the latest version was `claude-sonnet-4-5@20250929`.
-  - The model id of your activated Claude Sonnet model needs to be entered later in the `.env` file.
-  - The Claude Sonnet model is later specified in the `.env` file as the `ANTHROPIC_MODEL`.
-- Similarly enable an endpoint for the latest Claude Haiku model.
-  - This model is later specified in the `.env` file as the `ANTHROPIC_SMALL_FAST_MODEL`.
-  - At the time of creating this Readme, the latest version was `claude-haiku-4-5@20251001`.
+- Enable endpoints for Claude models:
+  - **Claude Opus**: `claude-opus-4-5@20251101` - specified as `ANTHROPIC_DEFAULT_OPUS_MODEL`
+  - **Claude Sonnet**: `claude-sonnet-4-5@20250929` - specified as `ANTHROPIC_DEFAULT_SONNET_MODEL`
+  - **Claude Haiku**: `claude-haiku-4-5@20250925` - specified as `ANTHROPIC_DEFAULT_HAIKU_MODEL`
+- The model IDs of your activated Claude models need to be entered in the `.env` file.
 
 ## How To Use This Repository
 

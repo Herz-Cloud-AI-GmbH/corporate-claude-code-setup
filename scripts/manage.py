@@ -100,10 +100,10 @@ class ClaudeSetupManager:
             self.print_warning("GCP_PROJECT_ID is missing in .env for GCP profile")
 
         cloud_region = env_vars.get("CLOUD_ML_REGION", "global")
-        # Keep compatibility with the original (main-branch) env naming.
         # These should be Vertex Claude model IDs like "claude-sonnet-4-5@20250929".
-        model = env_vars.get("ANTHROPIC_MODEL", "")
-        small_fast_model = env_vars.get("ANTHROPIC_SMALL_FAST_MODEL", "")
+        opus_model = env_vars.get("ANTHROPIC_DEFAULT_OPUS_MODEL", "")
+        sonnet_model = env_vars.get("ANTHROPIC_DEFAULT_SONNET_MODEL", "")
+        haiku_model = env_vars.get("ANTHROPIC_DEFAULT_HAIKU_MODEL", "")
 
         # Native Vertex: do NOT set ANTHROPIC_BASE_URL or any LiteLLM-related vars.
         settings_env: dict[str, str] = {
@@ -113,11 +113,13 @@ class ClaudeSetupManager:
             "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
         }
 
-        # Optional model configuration (kept compatible with original main-branch approach)
-        if model:
-            settings_env["ANTHROPIC_MODEL"] = model
-        if small_fast_model:
-            settings_env["ANTHROPIC_SMALL_FAST_MODEL"] = small_fast_model
+        # Optional model configuration
+        if opus_model:
+            settings_env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = opus_model
+        if sonnet_model:
+            settings_env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = sonnet_model
+        if haiku_model:
+            settings_env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = haiku_model
 
         return settings_env
 
@@ -130,7 +132,6 @@ class ClaudeSetupManager:
         return {
             "ANTHROPIC_BASE_URL": base_url,
             "ANTHROPIC_AUTH_TOKEN": master_key,
-            "ANTHROPIC_MODEL": "sonnet",
             "ANTHROPIC_DEFAULT_OPUS_MODEL": "opus",
             "ANTHROPIC_DEFAULT_SONNET_MODEL": "sonnet",
             "ANTHROPIC_DEFAULT_HAIKU_MODEL": "haiku",
