@@ -50,7 +50,7 @@ Provider setup:
 
 Control/status:
 - `make status`
-- `make start` / `make stop` (LiteLLM process only)
+- `make start-litellm` / `make stop-litellm` (LiteLLM process only)
 - `make clean` (removes `.devcontainer/.env` and `~/.claude/settings.json`)
 
 ## Provider behaviors (important implementation details)

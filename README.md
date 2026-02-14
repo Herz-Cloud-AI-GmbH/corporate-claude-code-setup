@@ -95,7 +95,7 @@ make status
 ### Switch Providers (Optional)
 7. You can switch between providers at any time:
 ```bash
-make stop              # Stop LiteLLM proxy (if you are in a proxy mode)
+make stop-litellm      # Stop LiteLLM proxy (if you are in a proxy mode)
 make setup-<provider>  # Start new provider (gcp or copilot)
 ```
 
@@ -104,12 +104,13 @@ make setup-<provider>  # Start new provider (gcp or copilot)
 All setup is managed via the `Makefile`:
 
 ```bash
-make help           # Show all available commands
-make setup-gcp      # Setup with GCP Vertex AI
-make setup-copilot  # Setup with GitHub Copilot
-make status         # Show current configuration and service status
-make stop           # Stop LiteLLM proxy
-make clean          # Stop services and remove all configuration
+make help             # Show all available commands
+make setup-gcp        # Setup with GCP Vertex AI
+make setup-copilot    # Setup with GitHub Copilot
+make status           # Show current configuration and service status
+make start-litellm    # Start LiteLLM proxy
+make stop-litellm     # Stop LiteLLM proxy
+make clean            # Stop services and remove all configuration
 ```
 
 

@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help script-help setup-gcp setup-copilot status stop clean start
+.PHONY: help script-help setup-gcp setup-copilot status stop-litellm clean start-litellm
 
 # Delegate all logic to the Python script
 SCRIPT := python3 scripts/manage.py
@@ -24,10 +24,10 @@ setup-gcp: ## Setup Claude Code with GCP Vertex AI
 setup-copilot: ## Setup Claude Code with GitHub Copilot
 	@$(SCRIPT) setup copilot
 
-start: ## Start LiteLLM proxy (uses existing config)
+start-litellm: ## Start LiteLLM proxy (uses existing config)
 	@$(SCRIPT) start
 
-stop: ## Stop LiteLLM proxy
+stop-litellm: ## Stop LiteLLM proxy
 	@$(SCRIPT) stop
 
 status: ## Show current profile and service status
