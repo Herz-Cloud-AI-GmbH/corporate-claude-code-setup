@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/devcontainers/javascript-node:20-bookworm
 ARG APP_FOLDER
 ARG CLAUDE_CODE_VERSION
 
-COPY requirements.txt /tmp/requirements.txt
+COPY .devcontainer/requirements.txt /tmp/requirements.txt
 
 RUN apt-get update \
     #
@@ -36,4 +36,4 @@ RUN curl -fsSL https://claude.ai/install.sh | bash -s ${CLAUDE_CODE_VERSION} \
     #
     # update npm to be able to run MCP servers with npx
     # !!!--ignore-scripts due to Shai Hulud attack!!!
-    && npm install --ignore-scripts -g npm@11.4.2
+    && npm install --ignore-scripts -g npm@latest
